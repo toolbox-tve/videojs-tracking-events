@@ -1,0 +1,20 @@
+{
+  "events": {
+    "LOAD": "Load",
+    "START": "Start",
+    "PROGRESS": "Progress",
+    "FIRSTQUARTILE": "FirstQuartile",
+    "MIDPOINT": "Midpoint",
+    "THIRDQUARTILE": "ThirdQuartile",
+    "COMPLETE": "Complete",
+    "PAUSE": "Pause",
+    "RESUME": "Resume",
+    "CLOSE": "Close"
+  },
+  "percentage": {
+    "FIRSTQUARTILE": 25,
+    "MIDPOINT": 50,
+    "THIRDQUARTILE": 75,
+    "COMPLETE": 95
+  }
+}
