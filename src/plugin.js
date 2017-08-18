@@ -1,6 +1,7 @@
 import videojs from 'video.js';
 import {version as VERSION} from '../package.json';
 import { percentage as PERCENTAGE, events as EVENTS } from './events.json';
+import merge from 'deepmerge';
 
 // Default options for the plugin.
 const defaults = {
@@ -8,7 +9,9 @@ const defaults = {
   contentId: 'content1234',
   profileId: 'prof1234',
   request: {
-    headers: {}
+    headers: {
+      Authorization: 'JWT 1234'
+    }
   }
 };
 
@@ -72,11 +75,10 @@ const onTimeUpdate = (player, options) => {
   }
 
   // Check quartiles
-  const event = getQuartileEvent(percentage);
+  //const event = getQuartileEvent(percentage);
+  const event = getAllQuartileEvents(percentage);
 
-  if (event) {
-    // Add event to array of events sent
-    eventsSent.push(event);
+  if (event && event.length > 0) {
     sendEvent(event, player, options);
   }
   
@@ -92,12 +94,15 @@ const onTimeUpdate = (player, options) => {
  */
 function sendEvent(event, player, options) {
   const playerData = {
-    position: player.currentTime(),
+    position: Math.round(player.currentTime()),
     timeSpent: Math.round((Date.now() - startDate) / 1000),
-    event
+    event,
+    contentId: options.contentId,
+    profileId: options.profileId
   };
 
   console.log(playerData);
+  makeRequest(options.url, playerData, options.request)
 }
 
 /**
@@ -106,25 +111,26 @@ function sendEvent(event, player, options) {
  * @param {String} url 
  * @param {Object} data 
  */
-function makeRequest(data) {
-  let request = {
-    body: JSON.stringify(data),
-    url: eventUrl,
+function makeRequest(url, body, request) {
+  let defRequest = {
+    body: JSON.stringify(body),
+    url,
     method: 'POST',
     headers: {
       'Content-Type': 'application/json'
     }
   }
 
-  videojs.xhr(request, (err, res, body) => {
-    console.log('res');
+  let req = merge(request, defRequest);
+  videojs.xhr(req, (err, res, body) => {
+    console.log('RESPONSE');
   });
 }
 
 /**
  * Returns quartile event if any
  * 
- * @param {any} percentage 
+ * @param {integer} percentage 
  */
 function getQuartileEvent(percentage) {
   if (percentage >= PERCENTAGE.FIRSTQUARTILE && !eventsSent.includes(EVENTS.FIRSTQUARTILE)) {
@@ -137,6 +143,22 @@ function getQuartileEvent(percentage) {
     return EVENTS.COMPLETE;
   }
   return null;
+}
+
+function getAllQuartileEvents(percentage) {
+  let events = [];
+  let event = null;
+
+  do {
+    event = getQuartileEvent(percentage);
+    if (event) {
+      events.push(event);
+      // Add event to array of events sent
+      eventsSent.push(event);
+    }
+  } while(event !== null)
+
+  return events;
 }
 
 /**
