@@ -1,7 +1,7 @@
 import videojs from 'video.js';
-import {version as VERSION} from '../package.json';
-import { percentage as PERCENTAGE, events as EVENTS } from './events.json';
 import merge from 'deepmerge';
+import { version as VERSION } from '../package.json';
+import { percentage as PERCENTAGE, events as EVENTS } from './events.json';
 
 // Default options for the plugin.
 const defaults = {
@@ -29,15 +29,11 @@ let eventsSent = [];
 /**
  * Function to invoke when the player is ready.
  *
- * @function onPlayerReady
- * @param    {Player} player
- *           A Video.js player object.
- *
+ * @param    {videojs} player
  * @param    {Object} [options={}]
- *           A plain object containing options for the plugin.
  */
-const onPlayerReady = (player, options) => {
-  player.addClass('vjs-tracking-events');
+const onLoadedMetadata = (player, options) => {
+  sendEvent(EVENTS.START, player, options);
 };
 
 /**
@@ -61,6 +57,16 @@ const onResumeEvent = (player, options) => {
 };
 
 /**
+ * Function to invoke when the event onbeforeunload is triggered.
+ * 
+ * @param {videojs} player
+ * @param {Object} options
+ */
+const onBeforeUnload = (player, options) => {
+  sendEvent(EVENTS.CLOSE, player, options);
+};
+
+/**
  * Function to invoke when the event timeupdate is triggered.
  * 
  * @param {videojs} player
@@ -70,7 +76,7 @@ const onTimeUpdate = (player, options) => {
   const percentage = Math.round((player.currentTime() / player.duration()) * 100);
 
   if (lastTime > player.currentTime()) {
-    // Clean quartile events sent    
+    // Clean quartile events sent
     cleanEventsSent(percentage);
   }
 
@@ -179,9 +185,11 @@ function cleanEventsSent(percentage) {
  * @param {Object} options
  */
 const hookPlayerEvents = (player, options) => {
+  player.on('loadedmetadata', onLoadedMetadata.bind(null, player, options));
   player.on('timeupdate', onTimeUpdate.bind(null, player, options));
   player.on('pause', onPauseEvent.bind(null, player, options));
   player.on('play', onResumeEvent.bind(null, player, options));
+  window.addEventListener('beforeunload', onBeforeUnload.bind(null, player, options));
 };
 
 /**
