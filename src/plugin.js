@@ -107,7 +107,6 @@ function sendEvent(event, player, options) {
     profileId: options.profileId
   };
 
-  console.log(playerData);
   makeRequest(options.url, playerData, options.request)
 }
 
@@ -129,7 +128,7 @@ function makeRequest(url, body, request) {
 
   let req = merge(request, defRequest);
   videojs.xhr(req, (err, res, body) => {
-    console.log('RESPONSE');
+    //idk
   });
 }
 
