@@ -16,6 +16,7 @@
     "FIRSTQUARTILE": 25,
     "MIDPOINT": 50,
     "THIRDQUARTILE": 75,
-    "COMPLETE": 95
+    "COMPLETE": 95,
+    "ENDED": 100
   }
 }

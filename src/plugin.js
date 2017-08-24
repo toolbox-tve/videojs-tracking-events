@@ -161,6 +161,8 @@ function getQuartileEvent(percentage) {
     return EVENTS.THIRDQUARTILE;
   } else if (percentage >= PERCENTAGE.COMPLETE && !eventsSent.includes(EVENTS.COMPLETE)) {
     return EVENTS.COMPLETE;
+  } else if (percentage >= PERCENTAGE.ENDED && !eventsSent.includes(EVENTS.ENDED)) {
+    return EVENTS.ENDED;
   }
   return null;
 }
@@ -203,7 +205,6 @@ const hookPlayerEvents = (player, options) => {
   player.on('timeupdate', onTimeUpdate.bind(null, player, options));
   player.on('pause', onPauseEvent.bind(null, player, options));
   player.on('play', onResumeEvent.bind(null, player, options));
-  player.on('ended', onEndedEvent.bind(null, player, options));
   window.addEventListener('beforeunload', onBeforeUnload.bind(null, player, options));
 };
 
