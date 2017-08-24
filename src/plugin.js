@@ -57,6 +57,16 @@ const onResumeEvent = (player, options) => {
 };
 
 /**
+ * Function to invoke when the event ended is triggered.
+ * 
+ * @param {videojs} player
+ * @param {Object} options
+ */
+const onEndedEvent = (player, options) => {
+  sendEvent(EVENTS.ENDED, player, options);
+};
+
+/**
  * Function to invoke when the event onbeforeunload is triggered.
  * 
  * @param {videojs} player
@@ -99,12 +109,17 @@ const onTimeUpdate = (player, options) => {
  * @param {videojs} player 
  */
 function sendEvent(event, player, options) {
+  let drmType = null;
+  let formartType = null;
+
   const playerData = {
     position: Math.round(player.currentTime()),
     timeSpent: Math.round((Date.now() - startDate) / 1000),
     event,
     contentId: options.contentId,
-    profileId: options.profileId
+    profileId: options.profileId,
+    drmType: player.drmType || null,
+    formatType: player.currentSource().type
   };
 
   makeRequest(options.url, playerData, options.request)
@@ -188,6 +203,7 @@ const hookPlayerEvents = (player, options) => {
   player.on('timeupdate', onTimeUpdate.bind(null, player, options));
   player.on('pause', onPauseEvent.bind(null, player, options));
   player.on('play', onResumeEvent.bind(null, player, options));
+  player.on('ended', onEndedEvent.bind(null, player, options));
   window.addEventListener('beforeunload', onBeforeUnload.bind(null, player, options));
 };
 

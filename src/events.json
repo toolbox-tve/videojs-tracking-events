@@ -9,7 +9,8 @@
     "COMPLETE": "Complete",
     "PAUSE": "Pause",
     "RESUME": "Resume",
-    "CLOSE": "Close"
+    "CLOSE": "Close",
+    "ENDED": "Ended"
   },
   "percentage": {
     "FIRSTQUARTILE": 25,
