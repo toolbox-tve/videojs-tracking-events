@@ -1,15 +1,15 @@
 import videojs from 'video.js';
-import {version as VERSION} from '../package.json';
+import { version as VERSION } from '../package.json';
 import { percentage as PERCENTAGE, events as EVENTS } from './events.json';
 
 // Default options for the plugin.
 const defaults = {
-  url: 'http://localhost:9999',
-  contentId: 'content1234',
-  profileId: 'prof1234',
-  request: {
-    headers: {}
-  }
+	url: 'http://localhost:9999',
+	contentId: 'content1234',
+	profileId: 'prof1234',
+	request: {
+		headers: {}
+	}
 };
 
 // Cross-compatibility for Video.js 5 and 6.
@@ -22,6 +22,8 @@ let lastTime = 0;
 let startDate = null;
 // Array with events already sent
 let eventsSent = [];
+// seeking boolean
+let seeking = false;
 
 /**
  * Function to invoke when the player is ready.
@@ -34,120 +36,146 @@ let eventsSent = [];
  *           A plain object containing options for the plugin.
  */
 const onPlayerReady = (player, options) => {
-  player.addClass('vjs-tracking-events');
+	player.addClass('vjs-tracking-events');
 };
 
 /**
  * Function to invoke when the event pause is triggered.
- * 
+ *
  * @param {videojs} player
  * @param {Object} options
  */
 const onPauseEvent = (player, options) => {
-  sendEvent(EVENTS.PAUSE, player, options);
+  if(player.currentTime() === player.duration()) {
+    return;
+  } else if (player.seeking()) {
+    seeking = true;
+    return;
+  }
+
+	sendEvent(EVENTS.PAUSE, player, options);
 };
 
 /**
  * Function to invoke when the event play is triggered.
- * 
+ *
  * @param {videojs} player
  * @param {Object} options
  */
 const onResumeEvent = (player, options) => {
-  sendEvent(EVENTS.RESUME, player, options);
+  if(player.currentTime() === 0) {
+    return;
+  } else if(seeking) {
+    seeking = false;
+    return;
+  }
+
+	sendEvent(EVENTS.RESUME, player, options);
 };
 
 /**
  * Function to invoke when the event timeupdate is triggered.
- * 
+ *
  * @param {videojs} player
- * @param {Object} options 
+ * @param {Object} options
  */
 const onTimeUpdate = (player, options) => {
-  const percentage = Math.round((player.currentTime() / player.duration()) * 100);
+	const percentage = Math.round(player.currentTime() / player.duration() * 100);
 
-  if (lastTime > player.currentTime()) {
-    // Clean quartile events sent    
-    cleanEventsSent(percentage);
-  }
+	if (lastTime > player.currentTime()) {
+		// Clean quartile events sent
+		cleanEventsSent(percentage);
+	}
 
-  // Check quartiles
-  const event = getQuartileEvent(percentage);
+	// Check quartiles
+	const event = getQuartileEvent(percentage);
 
-  if (event) {
-    // Add event to array of events sent
-    eventsSent.push(event);
-    sendEvent(event, player, options);
-  }
-  
-  // Set lastTime with currentTime for quartile reset
-  lastTime = player.currentTime();
+	if (event) {
+		// Add event to array of events sent
+		eventsSent.push(event);
+		sendEvent(event, player, options);
+	}
+
+	// Set lastTime with currentTime for quartile reset
+	lastTime = player.currentTime();
 };
 
 /**
  * Sends event with player data
- * 
- * @param {String} event 
- * @param {videojs} player 
+ *
+ * @param {String} event
+ * @param {videojs} player
  */
 function sendEvent(event, player, options) {
-  const playerData = {
-    position: player.currentTime(),
-    timeSpent: Math.round((Date.now() - startDate) / 1000),
-    event
-  };
+	const playerData = {
+		position: player.currentTime(),
+		timeSpent: Math.round((Date.now() - startDate) / 1000),
+		event
+	};
 
-  console.log(playerData);
+	console.log(playerData);
 }
 
 /**
  * Function to send request through videojs xhr.
- * 
- * @param {String} url 
- * @param {Object} data 
+ *
+ * @param {String} url
+ * @param {Object} data
  */
 function makeRequest(data) {
-  let request = {
-    body: JSON.stringify(data),
-    url: eventUrl,
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json'
-    }
-  }
+	let request = {
+		body: JSON.stringify(data),
+		url: eventUrl,
+		method: 'POST',
+		headers: {
+			'Content-Type': 'application/json'
+		}
+	};
 
-  videojs.xhr(request, (err, res, body) => {
-    console.log('res');
-  });
+	videojs.xhr(request, (err, res, body) => {
+		console.log('res');
+	});
 }
 
 /**
  * Returns quartile event if any
- * 
- * @param {any} percentage 
+ *
+ * @param {any} percentage
  */
 function getQuartileEvent(percentage) {
-  if (percentage >= PERCENTAGE.FIRSTQUARTILE && !eventsSent.includes(EVENTS.FIRSTQUARTILE)) {
-    return EVENTS.FIRSTQUARTILE;
-  } else if (percentage >= PERCENTAGE.MIDPOINT && !eventsSent.includes(EVENTS.MIDPOINT)) {
-    return EVENTS.MIDPOINT;
-  } else if (percentage >= PERCENTAGE.THIRDQUARTILE && !eventsSent.includes(EVENTS.THIRDQUARTILE)) {
-    return EVENTS.THIRDQUARTILE;
-  } else if (percentage >= PERCENTAGE.COMPLETE && !eventsSent.includes(EVENTS.COMPLETE)) {
-    return EVENTS.COMPLETE;
-  }
-  return null;
+	if (
+		percentage >= PERCENTAGE.FIRSTQUARTILE &&
+		!eventsSent.includes(EVENTS.FIRSTQUARTILE)
+	) {
+		return EVENTS.FIRSTQUARTILE;
+	} else if (
+		percentage >= PERCENTAGE.MIDPOINT &&
+		!eventsSent.includes(EVENTS.MIDPOINT)
+	) {
+		return EVENTS.MIDPOINT;
+	} else if (
+		percentage >= PERCENTAGE.THIRDQUARTILE &&
+		!eventsSent.includes(EVENTS.THIRDQUARTILE)
+	) {
+		return EVENTS.THIRDQUARTILE;
+	} else if (
+		percentage >= PERCENTAGE.COMPLETE &&
+		!eventsSent.includes(EVENTS.COMPLETE)
+	) {
+		return EVENTS.COMPLETE;
+	}
+	return null;
 }
 
 /**
  * Clears events on rewind
- * 
- * @param {integer} percentage 
+ *
+ * @param {integer} percentage
  */
 function cleanEventsSent(percentage) {
-  eventsSent = eventsSent.filter(event => {
-    return percentage > PERCENTAGE[event.toUpperCase()];
-  });
+	eventsSent = eventsSent.filter(event => {
+		return percentage > PERCENTAGE[event.toUpperCase()];
+	});
 }
 
 /**
@@ -157,9 +185,9 @@ function cleanEventsSent(percentage) {
  * @param {Object} options
  */
 const hookPlayerEvents = (player, options) => {
-  player.on('timeupdate', onTimeUpdate.bind(null, player, options));
-  player.on('pause', onPauseEvent.bind(null, player, options));
-  player.on('play', onResumeEvent.bind(null, player, options));
+	player.on('timeupdate', onTimeUpdate.bind(null, player, options));
+	player.on('pause', onPauseEvent.bind(null, player, options));
+	player.on('play', onResumeEvent.bind(null, player, options));
 };
 
 /**
@@ -175,10 +203,10 @@ const hookPlayerEvents = (player, options) => {
  *           An object of options left to the plugin author to define.
  */
 const trackingEvents = function(options) {
-  this.ready(() => {
-    startDate = Date.now();
-    hookPlayerEvents(this, videojs.mergeOptions(defaults, options));
-  });
+	this.ready(() => {
+		startDate = Date.now();
+		hookPlayerEvents(this, videojs.mergeOptions(defaults, options));
+	});
 };
 
 // Register the plugin with video.js.
