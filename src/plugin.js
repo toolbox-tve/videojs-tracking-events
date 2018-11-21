@@ -123,7 +123,6 @@ class TrackEvents {
    * @memberof TrackEvents
    */
   onEndedEvent() {
-    //this.sendEvent(EVENTS.ENDED);
     this.clearInterval(this.intervalID);
   }
 
@@ -142,34 +141,35 @@ class TrackEvents {
    * @memberof TrackEvents
    */
   onBeforeUnload(event) {
-    fetch(this.options.url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: this.options.request.headers.Authorization
+    if (!navigator || !navigator.sendBeacon) {
+      this.sendEvent(EVENTS.CLOSE);
+    }
+
+    const types = drmDetect(this.player);
+    const pbData = playbackData(this.player);
+    const url = this.options.url.includes('?') ? `${this.options.url}&beacon=true` : `${this.options.url}?beacon=true`;
+    const jwt = this.options.request && this.options.request.headers && this.options.request.headers.Authorization;
+
+    navigator.sendBeacon(url, JSON.stringify({
+      content: {
+        id: this.options.contentId,
+        drmType: types.drmType,
+        formatType: types.formatType,
+        playbackUrl: this.player.currentSrc && this.player.currentSrc()
       },
-      body: JSON.stringify({
-        content: {
-          id: this.options.contentId,
-          // drmType: types.drmType,
-          // formatType: types.formatType,
-          playbackUrl: this.player.currentSrc && this.player.currentSrc()
-        },
-        events: this.getEventObject(event, data),
-        playback: {
-          position: Math.round(this.player.currentTime()),
-          timeSpent: Math.round((Date.now() - this.startDate) / 1000)
-          // bitrate: pbData.bitrate,
-          // resolution: pbData.resolution
-        },
-        user: {
-          profileId: this.options.profileId
-        },
-        playerID: this.player.playerID || this.player._playerID || ''
-      })
-    });
-    // this.sendEvent(EVENTS.CLOSE);
-    this.clearInterval(this.intervalID);
+      events: this.getEventObject(EVENTS.CLOSE, null),
+      playback: {
+        position: Math.round(this.player.currentTime()),
+        timeSpent: Math.round((Date.now() - this.startDate) / 1000),
+        bitrate: pbData.bitrate,
+        resolution: pbData.resolution
+      },
+      user: {
+        profileId: this.options.profileId,
+      },
+      playerID: this.player.playerID || this.player._playerID || '',
+      jwt
+    }));
   }
 
   /**
