@@ -54,6 +54,8 @@ class TrackEvents {
     this.quartileConfig = QUARTILE_CONFIG.ALWAYS;
     // If the content was paused and not resumed
     this.paused = false;
+    // first play
+    this.isFirstPlay = true;
 
     this.init();
   }
@@ -111,7 +113,9 @@ class TrackEvents {
    * @memberof TrackEvents
    */
   onResumeEvent() {
-		if(this.seeking) {
+    if (this.isFirstPlay && this.player.startTime) {
+      this.isFirstPlay = false;
+    } else if(this.seeking) {
 			this.seeking = false;
 			return;
 		} else if(!this.paused) {
