@@ -52,6 +52,8 @@ class TrackEvents {
     this.seeking = false;
     // Quartile config always, noSkip, OnlyOnce [default: Always]
     this.quartileConfig = QUARTILE_CONFIG.ALWAYS;
+    // If the content was paused and not resumed
+    this.paused = false;
 
     this.init();
   }
@@ -100,6 +102,7 @@ class TrackEvents {
 		}
 
     this.sendEvent(EVENTS.PAUSE);
+    this.paused = true;
   }
 
   /**
@@ -108,13 +111,16 @@ class TrackEvents {
    * @memberof TrackEvents
    */
   onResumeEvent() {
-		if(this.player.currentTime() === 0) {
-			return;
-		} else if(this.seeking) {
+		if(this.seeking) {
 			this.seeking = false;
 			return;
-		}
+		} else if(!this.paused) {
+      return;
+    }
+
     this.sendEvent(EVENTS.RESUME);
+    // Content was resumed
+    this.paused = false;
   }
 
   /**
