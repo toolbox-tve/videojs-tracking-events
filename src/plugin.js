@@ -215,6 +215,22 @@ class TrackEvents {
     this.lastTime = this.player.currentTime();
   }
 
+  onChangeSource() {
+    this.reset();
+  }
+
+  reset() {
+    this.lastTime = 0;
+    this.startDate = Date.now();
+    this.eventsSent = [];
+    this.eventNumber = 1;
+		this.currentSrc = this.player.currentSource();
+    this.seeking = false;
+    // this.quartileConfig = QUARTILE_CONFIG.ALWAYS;
+    this.paused = false;
+    this.isFirstPlay = true;
+  }
+
   /**
    *
    *
@@ -237,9 +253,11 @@ class TrackEvents {
     const types = drmDetect(this.player);
     const pbData = playbackData(this.player);
 
+    const content = this.player.tbx && this.player.tbx.content;
+
     const playerData = {
       content: {
-        id: this.options.contentId,
+        id: content.id,
         drmType: types.drmType,
         formatType: types.formatType,
         playbackUrl: this.player.currentSrc && this.player.currentSrc()
@@ -254,7 +272,7 @@ class TrackEvents {
       user: {
         profileId: this.options.profileId,
       },
-      playerID: this.player.playerID || this.player._playerID || ''
+      playerID: this.player.playerId || this.player._playerID || ''
     };
 
     if (data && (event === EVENTS.START_BUFFERING || event === EVENTS.RE_BUFFERING)) {
@@ -410,6 +428,7 @@ class TrackEvents {
     this.hook("buffered", this.onBuffered);
     this.hook("start-buffering", this.onFirstPlay);
     this.hook("error", this.onError);
+    this.hook('changesource', this.onChangeSource);
     window.addEventListener("beforeunload", this.onBeforeUnload.bind(this));
   }
 }
