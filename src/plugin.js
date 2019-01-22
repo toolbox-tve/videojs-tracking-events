@@ -98,7 +98,7 @@ class TrackEvents {
   onPauseEvent() {
 		if(this.player.currentTime() === this.player.duration()) {
 			return;
-		} else if (this.player.seeking()) {
+		} else if (this.player.seeking && this.player.seeking()) {
 			this.seeking = true;
 			return;
 		}
