@@ -11,13 +11,31 @@ class Buffering {
     this.bufferCount = 0;
     this.readyState = false;
 
-    player.on('dispose', this.reset.bind(this));
-    player.on('loadstart', this.reset.bind(this));
-    player.on('ended', this.reset.bind(this));
-    player.on('pause', this.onPause.bind(this));
-    player.on('waiting', this.onPlayerWaiting.bind(this));
-    player.on('seeking', this.onSeeking.bind(this));
-    player.on('canplaythrough', this.onCanPlayThrough.bind(this));
+    this.reset = this.reset.bind(this);
+    this.onPause = this.onPause.bind(this);
+    this.onPlayerWaiting = this.onPlayerWaiting.bind(this);
+    this.onSeeking = this.onSeeking.bind(this);
+    this.onCanPlayThrough = this.onCanPlayThrough.bind(this);
+
+    player.on('dispose', this.reset);
+    player.on('loadstart', this.reset);
+    player.on('ended', this.reset);
+    player.on('pause', this.onPause);
+    player.on('waiting', this.onPlayerWaiting);
+    player.on('seeking', this.onSeeking);
+    player.on('canplaythrough', this.onCanPlayThrough);
+  }
+
+  dispose() {
+    if (this && this.player) {
+      this.player.off('dispose', this.reset);
+      this.player.off('loadstart', this.reset);
+      this.player.off('ended', this.reset);
+      this.player.off('pause', this.onPause);
+      this.player.off('waiting', this.onPlayerWaiting);
+      this.player.off('seeking', this.onSeeking);
+      this.player.off('canplaythrough', this.onCanPlayThrough);
+    }
   }
 
   reset() {

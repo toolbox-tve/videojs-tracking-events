@@ -8,10 +8,24 @@ class Play {
     this.loadEnd = 0;
     this.secondsToLoad = 0;
 
-    player.on('dispose', this.reset.bind(this));
-    player.on('loadstart', this.onLoadStart.bind(this));
-    player.on('loadeddata', this.onLoadedData.bind(this));
-    player.on('playing', this.onPlaying.bind(this));
+    this.reset = this.reset.bind(this);
+    this.onLoadStart = this.onLoadStart.bind(this);
+    this.onLoadedData = this.onLoadedData.bind(this)
+    this.onPlaying = this.onPlaying.bind(this);
+
+    player.on('dispose', this.reset);
+    player.on('loadstart', this.onLoadStart);
+    player.on('loadeddata', this.onLoadedData);
+    player.on('playing', this.onPlaying);
+  }
+
+  dispose() {
+    if (this && this.player) {
+      this.player.off('dispose', this.reset);
+      this.player.off('loadstart', this.onLoadStart);
+      this.player.off('loadeddata', this.onLoadedData);
+      this.player.off('playing', this.onPlaying);
+    }
   }
 
   reset() {

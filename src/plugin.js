@@ -6,6 +6,8 @@ import { drmDetect, playbackData } from './drmDetect';
 import play from './tracking/play';
 import buffering from './tracking/buffering';
 
+const Plugin = videojs.getPlugin('plugin');
+
 const STREAMING_PROGRESS_TIMER = 300000; // 300000 in ms = 5 min
 const QUARTILE_CONFIG = {
   ALWAYS: 0,
@@ -26,7 +28,7 @@ const defaults = {
     }
   }
 };
-class TrackEvents {
+class TrackEvents extends Plugin {
   /**
    * Creates an instance of TrackEvents.
    * @param {videojs} player
@@ -34,10 +36,10 @@ class TrackEvents {
    * @memberof TrackEvents
    */
   constructor(player, options) {
-    // Player instance
-    this.player = player;
+    // the parent class will add player under this.player
+    super(player);
     // Merged with default options
-    this.options = options;
+    this.options = videojs.mergeOptions(defaults, options);
     // Saves last time
     this.lastTime = 0;
     // Playback Start Date
@@ -57,6 +59,12 @@ class TrackEvents {
     // first play
     this.isFirstPlay = true;
 
+    this.bindedEvents = {};
+    this.onBeforeUnload= this.onBeforeUnload.bind(this);
+
+    this._play = new play(this.player);
+    this._buffering = new buffering(this.player);
+
     this.init();
   }
 
@@ -74,7 +82,9 @@ class TrackEvents {
 
     this.sendEvent(EVENTS.START);
 
-    this.intervalID = setInterval(this.sendEvent.bind(this, EVENTS.STREAMING_PROGRESS), STREAMING_PROGRESS_TIMER);
+    if (!this.intervalID) {
+      this.intervalID = setInterval(this.sendEvent.bind(this, EVENTS.STREAMING_PROGRESS), STREAMING_PROGRESS_TIMER);
+    }
   }
 
   onBuffered(e, data) {
@@ -408,7 +418,15 @@ class TrackEvents {
    * @memberof TrackEvents
    */
   hook(playerEvent, callback) {
-    this.player.on(playerEvent, callback.bind(this));
+    if (!this.bindedEvents[playerEvent]) {
+      this.bindedEvents[playerEvent] = [];
+    }
+
+    const bindedCallback = callback.bind(this);
+    // Stores binded callbacks
+    this.bindedEvents[playerEvent].push(bindedCallback);
+
+    this.player.on(playerEvent, bindedCallback);
   }
 
   /**
@@ -417,8 +435,6 @@ class TrackEvents {
    * @memberof TrackEvents
    */
   init() {
-    const _play = new play(this.player);
-    const _buffering = new buffering(this.player);
     this.hook("loadedmetadata", this.onLoadedMetadata);
     this.hook("timeupdate", this.onTimeUpdate);
     this.hook("pause", this.onPauseEvent);
@@ -429,7 +445,23 @@ class TrackEvents {
     this.hook("start-buffering", this.onFirstPlay);
     this.hook("error", this.onError);
     this.hook('changesource', this.onChangeSource);
-    window.addEventListener("beforeunload", this.onBeforeUnload.bind(this));
+    window.addEventListener("beforeunload", this.onBeforeUnload);
+  }
+
+  dispose() {
+    if (this && this.player) {
+      Object.keys(this.bindedEvents).map(key => {
+        this.bindedEvents[key].map(callback => {
+          this.player.off(key, callback);
+        })
+      });
+
+      this._play.dispose();
+      this._buffering.dispose();
+      this.clearInterval(this.intervalID);
+      window.removeEventListener("beforeunload", this.onBeforeUnload);
+    }
+    super.dispose();
   }
 }
 
@@ -450,16 +482,19 @@ const getPlugin = videojs.getPlugin || videojs.plugin;
  * @param    {Object} [options={}]
  *           An object of options left to the plugin author to define.
  */
-const trackingEvents = function(options) {
-    const trackEvents = new TrackEvents(this, videojs.mergeOptions(defaults, options));
-};
+// const trackingEvents = function(options) {
+//     const trackEvents = new TrackEvents(this, videojs.mergeOptions(defaults, options));
+// };
 
 // Register the plugin with video.js.
 if (typeof getPlugin('eventTracking') === 'undefined') {
-  registerPlugin("trackingEvents", trackingEvents);
+  registerPlugin("trackingEvents", TrackEvents);
 }
 
-// Include the version number.
-trackingEvents.VERSION = VERSION;
+// Define default values for the plugin's `state` object here.
+TrackEvents.defaultState = {};
 
-export default trackingEvents;
+// Include the version number.
+TrackEvents.VERSION = VERSION;
+
+export default TrackEvents;
