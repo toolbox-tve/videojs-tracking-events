@@ -152,6 +152,7 @@ class TrackEvents extends Plugin {
    * @memberof TrackEvents
    */
   onDisposeEvent() {
+    onBeforeUnload({});
     this.clearInterval(this.intervalID);
   }
 
@@ -188,7 +189,9 @@ class TrackEvents extends Plugin {
         profileId: this.options.profileId,
       },
       playerID: this.player.playerID || this.player._playerID || '',
-      jwt
+      hboAuthzToken: window.tbxHboAuthzToken || null,
+      jwt,
+      version: 2
     }));
   }
 
@@ -263,7 +266,7 @@ class TrackEvents extends Plugin {
     const types = drmDetect(this.player);
     const pbData = playbackData(this.player);
 
-    const content = this.player.tbx && this.player.tbx.content;
+    const content = (this.player.tbx && this.player.tbx.content) || {};
 
     const playerData = {
       content: {
@@ -282,7 +285,9 @@ class TrackEvents extends Plugin {
       user: {
         profileId: this.options.profileId,
       },
-      playerID: this.player.playerId || this.player._playerID || ''
+      playerID: this.player.playerId || this.player._playerID || '',
+      hboAuthzToken: window.tbxHboAuthzToken || null,
+      version: 2
     };
 
     if (data && (event === EVENTS.START_BUFFERING || event === EVENTS.RE_BUFFERING)) {
