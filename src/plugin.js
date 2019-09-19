@@ -60,7 +60,7 @@ class TrackEvents extends Plugin {
     this.isFirstPlay = true;
 
     this.bindedEvents = {};
-    this.onBeforeUnload= this.onBeforeUnload.bind(this);
+    this.onBeforeUnload= this.onBeforeUnload.bind(this, player);
 
     this._play = new play(this.player);
     this._buffering = new buffering(this.player);
@@ -152,7 +152,7 @@ class TrackEvents extends Plugin {
    * @memberof TrackEvents
    */
   onDisposeEvent() {
-    onBeforeUnload({});
+    this.onBeforeUnload();
     this.clearInterval(this.intervalID);
   }
 
@@ -161,13 +161,13 @@ class TrackEvents extends Plugin {
    *
    * @memberof TrackEvents
    */
-  onBeforeUnload(event) {
+  onBeforeUnload(player) {
     if (!navigator || !navigator.sendBeacon) {
       this.sendEvent(EVENTS.CLOSE);
     }
 
-    const types = drmDetect(this.player);
-    const pbData = playbackData(this.player);
+    const types = drmDetect(player);
+    const pbData = playbackData(player);
     const url = this.options.url.includes('?') ? `${this.options.url}&beacon=true` : `${this.options.url}?beacon=true`;
     const jwt = this.options.request && this.options.request.headers && this.options.request.headers.Authorization;
 
@@ -176,11 +176,11 @@ class TrackEvents extends Plugin {
         id: this.options.contentId,
         drmType: types.drmType,
         formatType: types.formatType,
-        playbackUrl: this.player.currentSrc && this.player.currentSrc()
+        playbackUrl: player.currentSrc && player.currentSrc()
       },
       events: this.getEventObject(EVENTS.CLOSE, null),
       playback: {
-        position: Math.round(this.player.currentTime()),
+        position: Math.round(player.currentTime()),
         timeSpent: Math.round((Date.now() - this.startDate) / 1000),
         bitrate: pbData.bitrate,
         resolution: pbData.resolution
@@ -188,7 +188,7 @@ class TrackEvents extends Plugin {
       user: {
         profileId: this.options.profileId,
       },
-      playerID: this.player.playerID || this.player._playerID || '',
+      playerID: player.playerID || player._playerID || '',
       hboAuthzToken: window.tbxHboAuthzToken || null,
       jwt,
       version: 2
