@@ -1,6 +1,6 @@
 {
   "name": "videojs-tracking-events",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "event tracker",
   "main": "dist/videojs-tracking-events.cjs.js",
   "module": "dist/videojs-tracking-events.es.js",

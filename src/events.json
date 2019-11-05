@@ -15,7 +15,8 @@
     "START_BUFFERING": "start-buffering",
     "RE_BUFFERING": "re-buffering",
     "PROGRESSMARK": "ProgressMark",
-    "PLAYBACKERROR": "PlaybackError"
+    "PLAYBACKERROR": "PlaybackError",
+    "NET_TIME": "NetTime"
   },
   "quartiles": [
     {

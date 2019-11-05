@@ -5,6 +5,7 @@ import { events as EVENTS, quartiles as QUARTILES } from "./events.json";
 import { drmDetect, playbackData } from './drmDetect';
 import play from './tracking/play';
 import buffering from './tracking/buffering';
+import NetTime from "./tracking/netTime.js";
 
 const Plugin = videojs.getPlugin('plugin');
 
@@ -64,6 +65,7 @@ class TrackEvents extends Plugin {
 
     this._play = new play(this.player);
     this._buffering = new buffering(this.player);
+    this._netTime = new NetTime(this.player);
 
     this.init();
   }
@@ -164,35 +166,9 @@ class TrackEvents extends Plugin {
   onBeforeUnload(player) {
     if (!navigator || !navigator.sendBeacon) {
       this.sendEvent(EVENTS.CLOSE);
+    } else {
+      this.sendBeacon(EVENTS.CLOSE);
     }
-
-    const types = drmDetect(player);
-    const pbData = playbackData(player);
-    const url = this.options.url.includes('?') ? `${this.options.url}&beacon=true` : `${this.options.url}?beacon=true`;
-    const jwt = this.options.request && this.options.request.headers && this.options.request.headers.Authorization;
-
-    navigator.sendBeacon(url, JSON.stringify({
-      content: {
-        id: this.options.contentId,
-        drmType: types.drmType,
-        formatType: types.formatType,
-        playbackUrl: player.currentSrc && player.currentSrc()
-      },
-      events: this.getEventObject(EVENTS.CLOSE, null),
-      playback: {
-        position: Math.round(player.currentTime()),
-        timeSpent: Math.round((Date.now() - this.startDate) / 1000),
-        bitrate: pbData.bitrate,
-        resolution: pbData.resolution
-      },
-      user: {
-        profileId: this.options.profileId,
-      },
-      playerID: player.playerID || player._playerID || '',
-      hboAuthzToken: window.tbxHboAuthzToken || null,
-      jwt,
-      version: 2
-    }));
   }
 
   /**
@@ -242,6 +218,10 @@ class TrackEvents extends Plugin {
     // this.quartileConfig = QUARTILE_CONFIG.ALWAYS;
     this.paused = false;
     this.isFirstPlay = true;
+
+    this._play = new play(this.player);
+    this._buffering = new buffering(this.player);
+    this._netTime = new NetTime(this.player);
   }
 
   /**
@@ -257,44 +237,82 @@ class TrackEvents extends Plugin {
   }
 
   /**
-   * Sends event with player data
+   * Sends event with event data
    *
    * @param {String} event
+   * @param {Object} data
    * @memberof TrackEvents
    */
   sendEvent(event, data) {
-    const types = drmDetect(this.player);
-    const pbData = playbackData(this.player);
+    const eventData = this.prepareEventData(event, data);
 
-    const content = (this.player.tbx && this.player.tbx.content) || {};
+    this.makeRequest(this.options.url, eventData, this.options.request);
+  }
 
-    const playerData = {
-      content: {
-        id: content.id,
-        drmType: types.drmType,
-        formatType: types.formatType,
-        playbackUrl: this.player.currentSrc && this.player.currentSrc()
-      },
-      events: this.getEventObject(event, data),
-      playback: {
-        position: Math.round(this.player.currentTime()),
-        timeSpent: Math.round((Date.now() - this.startDate) / 1000),
-        bitrate: pbData.bitrate,
-        resolution: pbData.resolution
-      },
-      user: {
-        profileId: this.options.profileId,
-      },
-      playerID: this.player.playerId || this.player._playerID || '',
-      hboAuthzToken: window.tbxHboAuthzToken || null,
-      version: 2
-    };
+  /**
+   * Sends beacon with event data
+   *
+   * @param {String} event
+   * @param {Object} data
+   * @memberof TrackEvents
+   */
+  sendBeacon(event, data) {
+    const eventData = this.prepareEventData(event, data);
+    const url = this.options.url.includes('?') ? `${this.options.url}&beacon=true` : `${this.options.url}?beacon=true`;
+    const jwt = this.options.request && this.options.request.headers && this.options.request.headers.Authorization;
 
+    eventData.jwt = jwt;
+    navigator.sendBeacon(url, JSON.stringify(eventData));
+  }
+
+  prepareEventData(event, data) {
+    const player = this.player;
+    let eventData = window.tbx_player_event_data;
+
+    if (player) {
+      const types = drmDetect(player);
+      const pbData = playbackData(player);
+
+      const playbackUrl = player && player.currentSrc && player.currentSrc();
+      const position = Math.floor(player && player.currentTime() || 0);
+      const timeSpent = Math.floor((Date.now() - this.startDate) / 1000);
+      const content = (player && player.tbx && player.tbx.content) || {};
+      const profileId = this.options && this.options.profileId;
+      const playerID = (player && player.playerId) || '';
+      const hboAuthzToken = window.tbxHboAuthzToken || null;
+
+      eventData = {
+        content: {
+          id: content.id,
+          drmType: types.drmType,
+          formatType: types.formatType,
+          playbackUrl
+        },
+        events: this.getEventObject(event, data),
+        playback: {
+          position,
+          timeSpent,
+          bitrate: pbData.bitrate,
+          resolution: pbData.resolution
+        },
+        user: {
+          profileId
+        },
+        playerID,
+        hboAuthzToken,
+        version: 2
+      };
+    }
     if (data && (event === EVENTS.START_BUFFERING || event === EVENTS.RE_BUFFERING)) {
-      playerData.bufferStats = data;
+      eventData.bufferStats = data;
     }
 
-    this.makeRequest(this.options.url, playerData, this.options.request);
+    if (event === EVENTS.CLOSE) {
+      eventData.playback.netTime = (this._netTime && this._netTime.time) || 0;
+    }
+
+    window.tbx_player_event_data = eventData;
+    return eventData;
   }
 
 
@@ -463,6 +481,7 @@ class TrackEvents extends Plugin {
 
       this._play.dispose();
       this._buffering.dispose();
+      this._netTime.dispose();
       this.clearInterval(this.intervalID);
       window.removeEventListener("beforeunload", this.onBeforeUnload);
     }

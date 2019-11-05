@@ -10,8 +10,8 @@ const HLS = 'application/x-mpegurl',
 export function drmDetect(player) {
   let drmType = null;
   let formatType = null;
-  const browserDRM = player.supportedDRM;
-  const src = player.currentSource();
+  const browserDRM = player && player.supportedDRM;
+  const src = player && player.currentSource();
 
   if (src) {
     formatType = src.type;
@@ -48,21 +48,23 @@ function getDashDRM(player, browserDRM) {
 export function playbackData(player) {
   const resolution = getResolution(player);
 
-  if(player.dash && player.dash.shakaPlayer) {
-    const shakaStats = player.dash.shakaPlayer.getStats();
-    return {
-      bitrate: shakaStats.streamBandwidth,
-      resolution: resolution || {
-        width: shakaStats.width,
-        height: shakaStats.height
+  if (player) {
+    if(player.dash && player.dash.shakaPlayer) {
+      const shakaStats = player.dash.shakaPlayer.getStats();
+      return {
+        bitrate: shakaStats.streamBandwidth,
+        resolution: resolution || {
+          width: shakaStats.width,
+          height: shakaStats.height
+        }
+      };
+    } else if (player.tech_ && player.tech_.hls) {
+      const hls = player.tech_.hls;
+      const hlsStats = hls.playlists && hls.playlists.media();
+      return {
+        bitrate: hlsStats.attributes.BANDWIDTH,
+        resolution: resolution || hlsStats.attributes.RESOLUTION
       }
-    };
-  } else if (player.tech_ && player.tech_.hls) {
-    const hls = player.tech_.hls;
-    const hlsStats = hls.playlists && hls.playlists.media();
-    return {
-      bitrate: hlsStats.attributes.BANDWIDTH,
-      resolution: resolution || hlsStats.attributes.RESOLUTION
     }
   }
 
@@ -73,7 +75,7 @@ export function playbackData(player) {
 }
 
 function getResolution(player) {
-  if (!player.tech_ || !player.tech_.el_) {
+  if (!player || !player.tech_ || !player.tech_.el_) {
     return null;
   }
 
