@@ -308,7 +308,7 @@ class TrackEvents extends Plugin {
     }
 
     if (event === EVENTS.CLOSE) {
-      eventData.playback.netTime = (this._netTime && this._netTime.time) || 0;
+      eventData.playback.netTime = (this._netTime && this._netTime.getTime()) || 0;
     }
 
     window.tbx_player_event_data = eventData;
