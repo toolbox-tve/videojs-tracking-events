@@ -268,7 +268,6 @@ class TrackEvents extends Plugin {
   prepareEventData(event, data) {
     const player = this.player;
     let eventData = window.tbx_player_event_data || {};
-    eventData.events = this.getEventObject(event, data);
 
     if (player) {
       const types = drmDetect(player);
@@ -303,6 +302,9 @@ class TrackEvents extends Plugin {
         version: 2
       };
     }
+
+    eventData.events = this.getEventObject(event, data);
+
     if (data && (event === EVENTS.START_BUFFERING || event === EVENTS.RE_BUFFERING)) {
       eventData.bufferStats = data;
     }
