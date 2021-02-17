@@ -3,18 +3,45 @@
     "LOAD": "Load",
     "START": "Start",
     "PROGRESS": "Progress",
+    "STREAMING_PROGRESS": "StreamingProgress",
     "FIRSTQUARTILE": "FirstQuartile",
     "MIDPOINT": "Midpoint",
     "THIRDQUARTILE": "ThirdQuartile",
     "COMPLETE": "Complete",
     "PAUSE": "Pause",
     "RESUME": "Resume",
-    "CLOSE": "Close"
+    "CLOSE": "Close",
+    "ENDED": "Ended",
+    "START_BUFFERING": "start-buffering",
+    "RE_BUFFERING": "re-buffering",
+    "PROGRESSMARK": "ProgressMark",
+    "PLAYBACKERROR": "PlaybackError",
+    "NET_TIME": "NetTime"
   },
-  "percentage": {
-    "FIRSTQUARTILE": 25,
-    "MIDPOINT": 50,
-    "THIRDQUARTILE": 75,
-    "COMPLETE": 95
-  }
+  "quartiles": [
+    {
+      "name": "ProgressMark",
+      "value": 10
+    },
+    {
+      "name": "FirstQuartile",
+      "value": 25
+    },
+    {
+      "name": "Midpoint",
+      "value": 50
+    },
+    {
+      "name": "ThirdQuartile",
+      "value": 75
+    },
+    {
+      "name": "Complete",
+      "value": 95
+    },
+    {
+      "name": "Ended",
+      "value": 99
+    }
+  ]
 }
