@@ -49,8 +49,8 @@ export function playbackData(player) {
   const resolution = getResolution(player);
 
   if (player) {
-    if(player.dash && player.dash.shakaPlayer) {
-      const shakaStats = player.dash.shakaPlayer.getStats();
+    if(player.tech_ && player.tech_.shakaPlayer) {
+      const shakaStats = player.tech_.shakaPlayer.getStats();
       return {
         bitrate: shakaStats.streamBandwidth,
         resolution: resolution || {
